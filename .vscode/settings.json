@@ -1,0 +1,14 @@
+{
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "cSpell.words": [
+        "aswell",
+        "nltk",
+        "numpy",
+        "pdfplumber",
+        "scikit",
+        "scipy",
+        "streamlit",
+        "tfidf",
+        "vectorizer"
+    ]
+}
