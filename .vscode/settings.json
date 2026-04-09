@@ -2,13 +2,21 @@
     "python-envs.defaultEnvManager": "ms-python.python:system",
     "cSpell.words": [
         "aswell",
+        "msword",
         "nltk",
         "numpy",
+        "officedocument",
+        "openxmlformats",
         "pdfplumber",
         "scikit",
         "scipy",
+        "selectbox",
+        "skils",
         "streamlit",
+        "stringio",
         "tfidf",
-        "vectorizer"
+        "vectorizer",
+        "venv",
+        "wordprocessingml"
     ]
 }

@@ -1,26 +1,30 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer, util
 
-def calculate_similarity(resume_text, job_description_text):
-    """
-    Calculates the similarity between resume text and job description text
-    using TF-IDF and cosine similarity.
-    Returns the similarity score as a percentage (0-100%).
-    """
-    if not resume_text or not job_description_text:
-        return 0.0
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
-    documents = [resume_text, job_description_text]
-
-    # Initialize TfidfVectorizer
-    tfidf_vectorizer = TfidfVectorizer()
-
-    # Fit and transform the documents
-    tfidf_matrix = tfidf_vectorizer.fit_transform(documents)
-
-    # Calculate cosine similarity
-    # The first document (resume) is compared with the second (job description)
-    cosine_sim = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-
-    # Convert to percentage
-    return cosine_sim * 100
+def calculate_similarity(resume_text, job_desc, top_n=5):
+    # Split into sentences
+    resume_sentences = [s.strip() for s in resume_text.split('.') if s.strip()]
+    job_sentences = [s.strip() for s in job_desc.split('.') if s.strip()]
+    
+    # Encode all sentences
+    resume_embeddings = model.encode(resume_sentences, convert_to_tensor=True)
+    job_embeddings = model.encode(job_sentences, convert_to_tensor=True)
+    
+    # Compute similarity matrix
+    similarity_matrix = util.cos_sim(job_embeddings, resume_embeddings)
+    
+    # For each job sentence → find best matching resume sentence
+    best_scores = similarity_matrix.max(dim=1).values
+    
+    # Overall score = average best matches
+    overall_similarity = float(best_scores.mean() * 100)
+    
+    # Get weakest job requirements (bad matches)
+    worst_indices = best_scores.argsort()[:top_n]
+    feedback = [job_sentences[i] for i in worst_indices]
+    
+    return {
+        "similarity": overall_similarity,
+        "feedback": feedback
+    }
