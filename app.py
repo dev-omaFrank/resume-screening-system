@@ -1,123 +1,101 @@
+"""AI-Based Resume Screening System - Main Application"""
 import streamlit as st
-from skills import skill_match, extract_job_skills, get_missing_skills
-from resume_parser import extract_text_from_pdf
-from banking_skills import BANKING_SKILLS
-from similarity import calculate_similarity
-from experience import extract_experience, calculate_experience_score
-from cleaning import anonymize_resume
-from generate_explanation import generate_explanation
-from text_extractor import extract_text
+import sys
+import os
 
-st.set_page_config(page_title="AI Resume Screening System")
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-@st.cache_resource
-def load_model():
-    from similarity import model as loaded_model
-    return loaded_model
+from utils.theme import apply_theme, toggle_theme, LIGHT_THEME, DARK_THEME
+from database.db_manager import get_all_vacancies
 
-model = load_model()
+def main():
+    """Main application entry point."""
+    # Apply theme
+    theme = apply_theme()
 
-st.title("AI Resume Screening System")
-st.markdown("Upload one or more resumes and paste a job description to get match scores.")
+    # Theme toggle button
+    col1, col2 = st.columns([0.9, 0.1])
+    with col2:
+        theme_icon = "🌙" if st.session_state.theme == 'light' else "☀️"
+        if st.button(theme_icon, key="theme_toggle", help="Toggle theme"):
+            toggle_theme()
 
-# Job Description Input
-st.header("1. Job Description")
-job_description = st.text_area("Paste the Job Description here:", height=200)
+    with col1:
+        st.markdown('<div class="main-header">AI-Based Resume Screening System</div>', unsafe_allow_html=True)
+        st.markdown('<div style="color: ' + theme['text_secondary'] + '; margin-bottom: 24px;">Welcome to the resume screening platform</div>', unsafe_allow_html=True)
 
-# Resume Upload
-st.header("2. Upload Resume(s)")
-uploaded_files = st.file_uploader(
-    "Choose one or more resume files", 
-    type=["pdf", "txt", "docx"], 
-    accept_multiple_files=True
-)
+    # Navigation cards
+    st.markdown('<div class="sub-header">Get Started</div>', unsafe_allow_html=True)
 
-gender = st.selectbox('Please select your gender', ['Male', 'Female'])
+    col1, col2 = st.columns(2)
 
-age = st.number_input("Enter your age", value=None, placeholder="Enter your age", format="%d", step=1)
+    with col1:
+        st.markdown(f"""
+        <div class="card" style="cursor: pointer;">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: {theme['text']};">
+                📝 Submit Application
+            </div>
+            <div style="color: {theme['text_secondary']}; font-size: 14px;">
+                Apply for a job vacancy using a provided application link.
+            </div>
+        </div>
+        
+        """, unsafe_allow_html=True)
 
-if st.button("Evaluate Match"):
-    if uploaded_files and job_description and gender and age:
-        for uploaded_file in uploaded_files:
-            st.header(f"Processing: {uploaded_file.name}")
+        with col2:
+            st.markdown(f"""
+                <div class="card" style="cursor: pointer;">
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: {theme['text']};">
+                        ⁉️ How It Works
+                    </div>
+                    <div style="color: {theme['text_secondary']}; font-size: 14px;">
+                        Use the application link provided by the employer to submit your resume.
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
-            # --- Extract text ---
-            with st.spinner("Extracting text from resume..."):
-                resume_text = extract_text(uploaded_file)
-                if resume_text:
-                    resume_text = anonymize_resume(resume_text)
-                    st.success("Resume text extracted successfully")
-                else:
-                    st.error(f"Could not extract text from {uploaded_file.name}. Skipping.")
-                    continue
+    # Available vacancies preview
+    st.markdown('<div class="sub-header" style="margin-top: 32px;">Available Vacancies</div>', unsafe_allow_html=True)
 
-            # --- Analyze skills ---
-            with st.spinner("Analyzing skills..."):
-                skills_found = skill_match(resume_text, BANKING_SKILLS, model)
-                total_categories = len(skills_found)
-                matched_categories = sum(1 for v in skills_found.values() if v)
-                job_skills = extract_job_skills(job_description, BANKING_SKILLS)
-                missing_skills = get_missing_skills(job_skills, skills_found)
-                skill_score = (matched_categories / total_categories) * 100
+    vacancies = get_all_vacancies()
+    open_vacancies = [v for v in vacancies if v['status'] == 'Open']
 
-            # --- Calculate similarity ---
-            with st.spinner("Calculating similarity..."):
-                result = calculate_similarity(resume_text, job_description)
-                match_score = result["similarity"]
+    if not open_vacancies:
+        st.markdown(f"""
+        <div class="card" style="text-align: center; padding: 40px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+            <div style="font-size: 16px; font-weight: 600; color: {theme['text']}; margin-bottom: 8px;">
+                No Open Vacancies
+            </div>
+            <div style="color: {theme['text_secondary']}; font-size: 14px;">
+                There are currently no open positions. Check back later!
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for vacancy in open_vacancies[:5]:  # Show top 5
+            with st.container():
+                st.markdown(f"""
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 16px; font-weight: 600; color: {theme['text']}; margin-bottom: 4px;">
+                                {vacancy['job_title']}
+                            </div>
+                            <div style="color: {theme['text_secondary']}; font-size: 13px; margin-bottom: 8px;">
+                                {vacancy['job_description'][:100]}{'...' if len(vacancy['job_description']) > 100 else ''}
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <span class="badge badge-success">Open</span>
+                                <span style="color: {theme['text_secondary']}; font-size: 12px;">
+                                    {vacancy['submitted_count']} applications
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-            # --- Extract experience ---
-            with st.spinner("Extracting experience..."):
-                job_exp = extract_experience(job_description)
-                resume_exp = extract_experience(resume_text)
-                exp_result = calculate_experience_score(resume_exp, job_exp)
-                exp_score = exp_result["score"]
-
-            # --- Weighted final score (UPDATED FOR OPTION 2) ---
-            weights = {"similarity": 0.6, "skills": 0.3, "experience": 0.1}
-            
-            # If job has no experience requirement, remove experience from scoring entirely
-            if exp_result["status"] in ["no_requirement", "no_data"]:
-                # Redistribute experience weight to similarity and skills (60/30 becomes 67/33)
-                weights["similarity"] = 0.67
-                weights["skills"] = 0.33
-                weights["experience"] = 0
-                exp_score = 0  # Experience not used
-
-            final_score = (
-                match_score * weights["similarity"]
-                + skill_score * weights["skills"]
-                + exp_score * weights["experience"]
-            )
-
-            st.subheader(f"Final Match Score: {final_score:.2f}%")
-
-            # --- Explanation engine ---
-            exp_used = (weights["experience"] > 0)
-            explanation = generate_explanation(skills_found, missing_skills, match_score, exp_score, exp_used=exp_used)
-            
-            # Display Strengths if they exist
-            if explanation["strengths"]:
-                st.markdown("**Strengths:**")
-                for s in explanation["strengths"]:
-                    st.markdown(s)
-
-            # Display Gaps if they exist
-            if explanation["gaps"]:
-                st.markdown("**Gaps:**")
-                for g in explanation["gaps"]:
-                    st.markdown(g)
-
-    elif not uploaded_files:
-        st.warning("Please upload at least one resume file.")
-    elif not job_description:
-        st.warning("Please paste a job description.")
-    elif not gender:
-        st.warning("Please select your gender")
-    elif not age:
-        st.warning("Please enter your age")
-
-st.markdown("""
-<style>
-.stTextArea [data-testid="stExpander"] div:first-child {height: 200px;}
-</style>
-""", unsafe_allow_html=True)
+if __name__ == "__main__":
+    main()
