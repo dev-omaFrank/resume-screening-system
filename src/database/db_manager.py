@@ -2,11 +2,9 @@
 import sqlite3
 import os
 from datetime import datetime
-import json
-from streamlit_javascript import st_javascript
+import streamlit as st
 
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'submissions.db')
-appUrl = st_javascript("window.location.origin")
 
 def get_connection():
     """Get database connection."""
@@ -79,7 +77,7 @@ def create_vacancy(job_title, job_description, ai_gender_preference='None',
     vacancy_id = cursor.lastrowid
 
     # Generate application link
-    application_link = f"http:{appUrl}/apply?vacancy_id={vacancy_id}"
+    application_link = f"http://{st.context.url}/apply?vacancy_id={vacancy_id}"
 
     cursor.execute("""
         UPDATE vacancies SET application_link = ? WHERE id = ?
