@@ -10,10 +10,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from utils.theme import apply_theme, LIGHT_THEME, DARK_THEME
 from database.db_manager import get_vacancy_by_id, create_submission
 from utils.text_extractor import extract_text
-from core.similarity import calculate_similarity
+from core.similarity import calculate_similarity, preprocess_for_tfidf
 from core.skills import extract_skills, match_skills
 from core.experience import extract_years_of_experience, score_experience
-from core.explanation import generate_explanation, get_status
+from core.explanation import generate_explanation, get_status, combine_scores
 
 def main():
     """Main application page for candidates."""
@@ -192,22 +192,38 @@ def main():
                     for path in resume_paths:
                         text = extract_text(path)
                         resume_text += text + " "
+                        
+                    # preprocess the text
+                    resume_text = preprocess_for_tfidf(resume_text)
+                    job_description = preprocess_for_tfidf(vacancy['job_description'])
 
-                    # Calculate similarity
-                    match_score = calculate_similarity(resume_text, vacancy['job_description'])
+                    ### Calculate similarity
+                    match_score = calculate_similarity(resume_text, job_description)
 
                     # Extract skills
                     resume_skills = extract_skills(resume_text)
-                    job_skills = extract_skills(vacancy['job_description'])
+                    job_skills = extract_skills(job_description)
                     skills_match = match_skills(resume_skills, job_skills)
 
                     # Experience
                     years = extract_years_of_experience(resume_text)
                     exp_score = score_experience(years)
+                    
+                    # Combine all scores
+                    final_score = combine_scores(
+                        match_score,
+                        skills_match['match_percentage'],
+                        exp_score
+                    )
 
+                    # ADD THIS CHECK - Don't save if score is too low
+                    if final_score < 40:
+                        st.warning("Your resume does not meet the minimum requirements for this position. Thank you for your interest.")
+                        st.stop()  
+                    
                     # Generate recommendation
-                    ai_recommendation = generate_explanation(match_score, skills_match, exp_score)
-                    status = get_status(match_score)
+                    ai_recommendation = generate_explanation(final_score, skills_match, exp_score)
+                    status = get_status(final_score)
 
                     # Save to database
                     dob_str = date_of_birth.isoformat() if date_of_birth else None
@@ -219,12 +235,13 @@ def main():
                         date_of_birth=dob_str,
                         gender=gender,
                         resume_file_path=resume_paths[0] if resume_paths else None,
-                        match_score=match_score,
+                        match_score=final_score,
                         ai_recommendation=ai_recommendation,
                         strengths=", ".join(skills_match['matched'][:5]),
                         gaps=", ".join(skills_match['missing'][:5])
                     )
-
+                    ###
+                    
                     # Success message (NO evaluation data shown)
                     st.success("✅ Your resume has been submitted successfully. We will review it and get back to you soon.")
                     st.balloons()

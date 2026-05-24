@@ -37,3 +37,12 @@ def get_status(match_score):
         return "Fair"
     else:
         return "Not employable"
+
+def combine_scores(tfidf_score, skills_match_percentage, experience_score):
+    """Combine all scores into final percentage."""
+    final_score = (
+        tfidf_score * 0.30 +           
+        skills_match_percentage * 0.30 + 
+        experience_score * 0.40          
+    )
+    return round(final_score, 2)

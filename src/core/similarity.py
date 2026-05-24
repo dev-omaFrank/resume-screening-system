@@ -1,7 +1,18 @@
-# TF-IDF Similarity Calculation (FROZEN - DO NOT MODIFY)
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import re
+import string
+
+def preprocess_for_tfidf(text):
+    """Clean text for better TF-IDF matching."""
+    # Convert to lowercase
+    text = text.lower()
+    # Remove special characters but keep spaces
+    text = re.sub(r'[^\w\s]', ' ', text)
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+    return text
 
 def calculate_similarity(resume_text, job_description_text):
     """

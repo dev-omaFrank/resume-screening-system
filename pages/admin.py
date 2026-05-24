@@ -4,6 +4,7 @@ import sys
 import os
 import pandas as pd
 from datetime import datetime
+from utils.email_sender import send_interview_email
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -469,10 +470,11 @@ def render_submitted_resumes_tab(theme):
                        search_lower in (s['vacancy_title'] or '').lower()]
 
     if status_filter != "All":
+        # Current code - status_filter isn't being checked properly
         submissions = [s for s in submissions if 
-                       (status_filter == "Employable" and (s['match_score'] or 0) >= 70) or
-                       (status_filter == "Fair" and 50 <= (s['match_score'] or 0) < 70) or
-                       (status_filter == "Not employable" and (s['match_score'] or 0) < 50)]
+                    (status_filter == "Employable" and s['match_score'] >= 70) or
+                    (status_filter == "Fair" and 50 <= s['match_score'] < 70) or
+                    (status_filter == "Not employable" and s['match_score'] < 50)]
 
     # Pagination
     if 'submitted_current_page' not in st.session_state:
@@ -508,13 +510,12 @@ def render_submitted_resumes_tab(theme):
             if score >= 70:
                 badge_type = 'success'
                 status_text = "Employable"
-            elif score >= 50:
+            elif score >= 40:
                 badge_type = 'warning'
                 status_text = "Fair"
             else:
-                badge_type = 'danger'
-                status_text = "Not employable"
-
+                badge_type = None
+                status_text = None
             cols = st.columns([2, 2, 2, 3, 1, 1, 1, 1])
 
             with cols[0]:
@@ -529,7 +530,8 @@ def render_submitted_resumes_tab(theme):
             with cols[4]:
                 st.write(f"{score:.0f}%")
             with cols[5]:
-                st.markdown(render_badge(status_text, badge_type, theme), unsafe_allow_html=True)
+                if badge_type and status_text:
+                    st.markdown(render_badge(status_text, badge_type, theme), unsafe_allow_html=True)
             with cols[6]:
                 if st.button("👁", key=f"view_sub_{sub['id']}", help="View resume"):
                     st.session_state.show_submission_details = True
@@ -582,10 +584,11 @@ def render_progressed_resumes_tab(theme):
                        search_lower in (s['vacancy_title'] or '').lower()]
 
     if status_filter != "All":
+        # Option 1: Simple fix with 40 threshold
         submissions = [s for s in submissions if 
-                       (status_filter == "Employable" and (s['match_score'] or 0) >= 70) or
-                       (status_filter == "Fair" and 50 <= (s['match_score'] or 0) < 70) or
-                       (status_filter == "Not employable" and (s['match_score'] or 0) < 50)]
+                    (status_filter == "All") or
+                    (status_filter == "Employable" and (s['match_score'] or 0) >= 70) or
+                    (status_filter == "Fair" and 40 <= (s['match_score'] or 0) < 70)]
 
     # Pagination
     if 'progressed_current_page' not in st.session_state:
@@ -621,12 +624,12 @@ def render_progressed_resumes_tab(theme):
             if score >= 70:
                 badge_type = 'success'
                 status_text = "Employable"
-            elif score >= 50:
+            elif score >= 40:
                 badge_type = 'warning'
                 status_text = "Fair"
             else:
-                badge_type = 'danger'
-                status_text = "Not employable"
+                badge_type = None
+                status_text = None
 
             cols = st.columns([2, 2, 2, 3, 1, 1, 1, 1])
 
@@ -654,6 +657,21 @@ def render_progressed_resumes_tab(theme):
                         st.session_state.show_progressed_details = True
                         st.session_state.viewing_progressed = sub['id']
                         st.rerun()
+                        
+                    if st.button("Send Interview Email", key=f"email_sub_{sub['id']}"):
+                        email_sent = send_interview_email(
+                            to_email = sub['email'],
+                            candidate_name = sub['candidate_name'],
+                            vacancy_title = sub['vacancy_title']
+                        )
+                        if email_sent:
+                            update_submission_status(sub['id'], 'progressed')
+                            st.success("Interview Email sent")
+                        else:
+                            st.error("❌ Failed to send email")
+                            
+                        exit
+                    
                     if st.button("Move Back to Submitted", key=f"back_prog_{sub['id']}"):
                         update_submission_status(sub['id'], 'submitted')
                         st.success("Moved back to Submitted Resumes")
@@ -703,6 +721,15 @@ def main():
         st.session_state.show_progressed_details = False
     if 'viewing_progressed' not in st.session_state:
         st.session_state.viewing_progressed = None
+        
+    # Inject CSS to change tab label text color to gray
+    st.markdown("""
+    <style>
+        .stTabs button[role="tab"] p {
+            color: gray !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
     # Tabs
     tab1, tab2, tab3 = st.tabs(["Job Vacancies", "Submitted Resumes", "Progressed Resumes"])
