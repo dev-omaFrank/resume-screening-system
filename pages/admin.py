@@ -152,17 +152,17 @@ def show_vacancy_modal(vacancy_id=None, theme=None):
                 st.error("Job Description is required")
             else:
                 if is_edit:
-                    update_vacancy(
-                        vacancy_id,
-                        job_title=job_title.strip(),
-                        job_description=job_description.strip(),
-                        ai_gender_preference=ai_gender,
-                        ai_age_preference=ai_age.strip() if ai_age else None,
-                        ai_match_threshold=match_threshold.strip() if match_threshold else None,
-                        ask_for_date_of_birth=int(ask_dob),
-                        ask_for_gender=int(ask_gender),
-                        hiring_company=hiring_company.strip()
-                    )
+                    # update_vacancy(
+                    #     vacancy_id,
+                    #     job_title=job_title.strip(),
+                    #     job_description=job_description.strip(),
+                    #     ai_gender_preference=ai_gender,
+                    #     ai_age_preference=ai_age.strip() if ai_age else None,
+                    #     ai_match_threshold=match_threshold.strip() if match_threshold else None,
+                    #     ask_for_date_of_birth=int(ask_dob),
+                    #     ask_for_gender=int(ask_gender),
+                    #     hiring_company=hiring_company.strip()
+                    # )
                     st.success("Vacancy updated successfully!")
                 else:
                     vid, link = create_vacancy(

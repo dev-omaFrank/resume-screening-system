@@ -3,6 +3,8 @@ import sqlite3
 import os
 from datetime import datetime
 import streamlit as st
+from urllib.parse import urlparse
+
 
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'submissions.db')
 
@@ -86,8 +88,9 @@ def create_vacancy(job_title,
     vacancy_id = cursor.lastrowid
 
     # Generate application link
-    application_link = f"{st.context.url}/apply?vacancy_id={vacancy_id}"
-
+    parsed = urlparse(st.context.url)
+    base_url = f"{parsed.scheme}://{parsed.netloc}"
+    application_link = f"{base_url}/apply?vacancy_id={vacancy_id}"
     cursor.execute("""
         UPDATE vacancies SET application_link = ? WHERE id = ?
     """, (application_link, vacancy_id))
