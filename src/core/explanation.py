@@ -15,19 +15,28 @@ def generate_explanation(match_score, skills_match, experience_score):
     explanations = []
 
     if match_score >= 70:
-        explanations.append("Strong overall match with job requirements.")
+        explanations.append("• Strong match")
     elif match_score >= 50:
-        explanations.append("Moderate match with job requirements.")
+        explanations.append("• Moderate match")
     else:
-        explanations.append("Weak match with job requirements.")
+        explanations.append("• Weak match\n")
+        
+    if experience_score >= 80:
+        explanations.append("• Excellent years of experience")
+    elif experience_score >= 60:
+        explanations.append("• Good years of experience")
+    elif experience_score >= 40:
+        explanations.append("• Fair years of experience")
+    else:
+        explanations.append("• Limited years of experience")
 
-    if skills_match['matched']:
-        explanations.append(f"Matched skills: {', '.join(skills_match['matched'][:5])}")
+    # if skills_match['matched']:
+        # explanations.append(f"Matched skills: {', '.join(skills_match['matched'][:3])}")
 
     if skills_match['missing']:
-        explanations.append(f"Missing skills: {', '.join(skills_match['missing'][:5])}")
+        explanations.append(f"Missing skills: {', '.join(skills_match['missing'][:3])}")
 
-    return " ".join(explanations)
+    return "<br>".join(explanations)
 
 def get_status(match_score):
     """Get employment status based on score."""

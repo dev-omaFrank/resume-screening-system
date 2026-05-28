@@ -302,9 +302,9 @@ def apply_theme():
     import streamlit as st
 
     if 'theme' not in st.session_state:
-        st.session_state.theme = 'light'
+        st.session_state.theme = 'dark'
 
-    theme = LIGHT_THEME if st.session_state.theme == 'light' else DARK_THEME
+    theme = DARK_THEME if st.session_state.theme == 'dark' else LIGHT_THEME
 
     st.markdown(get_css(theme), unsafe_allow_html=True)
 
@@ -314,9 +314,9 @@ def toggle_theme():
     """Toggle between light and dark themes."""
     import streamlit as st
 
-    if st.session_state.theme == 'light':
-        st.session_state.theme = 'dark'
-    else:
+    if st.session_state.theme == 'dark':
         st.session_state.theme = 'light'
+    else:
+        st.session_state.theme = 'dark'
 
     st.rerun()

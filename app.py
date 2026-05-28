@@ -81,10 +81,10 @@ def main():
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <div style="font-size: 16px; font-weight: 600; color: {theme['text']}; margin-bottom: 4px;">
-                                {vacancy['job_title']}
+                                {vacancy['job_title']} posted by {vacancy['hiring_company']}
                             </div>
                             <div style="color: {theme['text_secondary']}; font-size: 13px; margin-bottom: 8px;">
-                                {vacancy['job_description'][:100]}{'...' if len(vacancy['job_description']) > 100 else ''}
+                                {vacancy['job_description'][:30]}{'...' if len(vacancy['job_description']) > 100 else ''}
                             </div>
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <span class="badge badge-success">Open</span>

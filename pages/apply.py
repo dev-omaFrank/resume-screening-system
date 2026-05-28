@@ -98,6 +98,15 @@ def main():
     st.markdown(f'<div class="section-title" style="margin-top: 24px;">Submit Your Application</div>', unsafe_allow_html=True)
 
     with st.form("application_form", clear_on_submit=True):
+        st.markdown("""
+        <style>
+            /* Something here might be hiding labels */
+            .stTextInput label {
+                display: block !important;
+                color: gray;
+            }
+        </style>
+        """, unsafe_allow_html=True)
         # Name Field
         name = st.text_input(
             "Full Name *",
@@ -217,7 +226,7 @@ def main():
                     )
 
                     # ADD THIS CHECK - Don't save if score is too low
-                    if final_score < 40:
+                    if final_score < 20:
                         st.warning("Your resume does not meet the minimum requirements for this position. Thank you for your interest.")
                         st.stop()  
                     
@@ -242,7 +251,7 @@ def main():
                     )
                     ###
                     
-                    # Success message (NO evaluation data shown)
+                    # Success message
                     st.success("✅ Your resume has been submitted successfully. We will review it and get back to you soon.")
                     st.balloons()
 

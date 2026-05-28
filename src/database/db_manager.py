@@ -28,6 +28,8 @@ def init_database():
             ai_age_preference TEXT,
             ask_for_date_of_birth INTEGER DEFAULT 0,
             ask_for_gender INTEGER DEFAULT 0,
+            ai_match_threshold INTEGER DEFAULT 0,
+            hiring_company TEXT NOT NULL,
             status TEXT DEFAULT 'Open',
             application_link TEXT UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -61,23 +63,30 @@ def init_database():
 
 # ==================== VACANCY METHODS ====================
 
-def create_vacancy(job_title, job_description, ai_gender_preference='None', 
-                   ai_age_preference=None, ask_for_date_of_birth=0, ask_for_gender=0):
+def create_vacancy(job_title,
+                   job_description,
+                   hiring_company,
+                   ai_gender_preference='None',
+                   ai_age_preference=None,
+                   ai_match_threshold=0,
+                   ask_for_date_of_birth=0,
+                   ask_for_gender=0
+                 ):
     """Create a new vacancy and generate application link."""
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
         INSERT INTO vacancies (job_title, job_description, ai_gender_preference, 
-                              ai_age_preference, ask_for_date_of_birth, ask_for_gender, status)
-        VALUES (?, ?, ?, ?, ?, ?, 'Open')
-    """, (job_title, job_description, ai_gender_preference, ai_age_preference, 
-          ask_for_date_of_birth, ask_for_gender))
+                              ai_age_preference, ai_match_threshold, ask_for_date_of_birth, ask_for_gender, hiring_company, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Open')
+    """, (job_title, job_description, ai_gender_preference, ai_age_preference, ai_match_threshold,
+          ask_for_date_of_birth, ask_for_gender, hiring_company))
 
     vacancy_id = cursor.lastrowid
 
     # Generate application link
-    application_link = f"http://{st.context.url}/apply?vacancy_id={vacancy_id}"
+    application_link = f"{st.context.url}/apply?vacancy_id={vacancy_id}"
 
     cursor.execute("""
         UPDATE vacancies SET application_link = ? WHERE id = ?
@@ -122,8 +131,8 @@ def update_vacancy(vacancy_id, **kwargs):
     conn = get_connection()
     cursor = conn.cursor()
 
-    allowed_fields = ['job_title', 'job_description', 'ai_gender_preference', 
-                      'ai_age_preference', 'ask_for_date_of_birth', 'ask_for_gender', 'status']
+    allowed_fields = ['hiring_company', 'job_title', 'job_description', 'ai_gender_preference', 
+                      'ai_age_preference', 'ask_for_date_of_birth', 'match_threshold', 'ask_for_gender', 'status']
 
     updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
     updates['updated_at'] = datetime.now().isoformat()
@@ -179,7 +188,7 @@ def get_submissions_by_vacancy(vacancy_id, status=None):
 
     if status:
         cursor.execute("""
-            SELECT s.*, v.job_title as vacancy_title
+            SELECT s.*, v.job_title as vacancy_title, v.ai_match_threshold
             FROM submissions s
             JOIN vacancies v ON s.vacancy_id = v.id
             WHERE s.vacancy_id = ? AND s.status = ?
@@ -187,7 +196,7 @@ def get_submissions_by_vacancy(vacancy_id, status=None):
         """, (vacancy_id, status))
     else:
         cursor.execute("""
-            SELECT s.*, v.job_title as vacancy_title
+            SELECT s.*, v.job_title as vacancy_title,  v.ai_match_threshold
             FROM submissions s
             JOIN vacancies v ON s.vacancy_id = v.id
             WHERE s.vacancy_id = ?
@@ -206,7 +215,7 @@ def get_all_submissions(status=None):
 
     if status:
         cursor.execute("""
-            SELECT s.*, v.job_title as vacancy_title
+            SELECT s.*, v.job_title as vacancy_title,  v.ai_match_threshold
             FROM submissions s
             JOIN vacancies v ON s.vacancy_id = v.id
             WHERE s.status = ?
@@ -214,7 +223,7 @@ def get_all_submissions(status=None):
         """, (status,))
     else:
         cursor.execute("""
-            SELECT s.*, v.job_title as vacancy_title
+            SELECT s.*, v.job_title as vacancy_title,  v.ai_match_threshold
             FROM submissions s
             JOIN vacancies v ON s.vacancy_id = v.id
             ORDER BY s.submission_date DESC
@@ -231,7 +240,7 @@ def get_submission_by_id(submission_id):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT s.*, v.job_title as vacancy_title, v.job_description
+        SELECT s.*, v.job_title as vacancy_title, v.job_description, v.ai_match_threshold
         FROM submissions s
         JOIN vacancies v ON s.vacancy_id = v.id
         WHERE s.id = ?

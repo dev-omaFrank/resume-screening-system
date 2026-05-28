@@ -82,40 +82,52 @@ def show_vacancy_modal(vacancy_id=None, theme=None):
     """, unsafe_allow_html=True)
 
     with st.form("vacancy_form"):
+        hiring_company = st.text_input(
+            ":grey[Hiring Company Name *]",
+            value=vacancy['hiring_company'] if vacancy else "",
+            placeholder="e.g., Ledgerly Invoices"
+        )
+        
         job_title = st.text_input(
-            "Job Title *",
+            ":grey[Job Title *]",
             value=vacancy['job_title'] if vacancy else "",
             placeholder="e.g., Senior Software Engineer"
         )
 
         job_description = st.text_area(
-            "Job Description *",
+            ":grey[Job Description *]",
             value=vacancy['job_description'] if vacancy else "",
             height=150,
             placeholder="Paste job description..."
         )
 
         ai_gender = st.selectbox(
-            "AI Should Favour Which Gender *",
+            ":grey[AI Should Favour Which Gender *]",
             options=["None", "Male", "Female", "Male and Female"],
             index=["None", "Male", "Female", "Male and Female"].index(vacancy['ai_gender_preference']) if vacancy else 0
         )
 
         ai_age = st.text_input(
-            "AI Should Favour Age",
+            ":grey[AI Should Favour Age]",
             value=vacancy['ai_age_preference'] if vacancy else "",
             placeholder="e.g., less than 27, 25-35"
+        )
+        
+        match_threshold = st.text_input(
+            ":grey[What is the minimum threshold for this application (%)]",
+            value=vacancy['ai_match_threshold'] if vacancy else "",
+            placeholder="e.g., 40, 50, 70"
         )
 
         col1, col2 = st.columns(2)
         with col1:
             ask_dob = st.checkbox(
-                "Ask for date of birth during application",
+                ":grey[Ask for date of birth during application]",
                 value=bool(vacancy['ask_for_date_of_birth']) if vacancy else False
             )
         with col2:
             ask_gender = st.checkbox(
-                "Ask for gender during application",
+                ":grey[Ask for gender during application]",
                 value=bool(vacancy['ask_for_gender']) if vacancy else False
             )
 
@@ -146,8 +158,10 @@ def show_vacancy_modal(vacancy_id=None, theme=None):
                         job_description=job_description.strip(),
                         ai_gender_preference=ai_gender,
                         ai_age_preference=ai_age.strip() if ai_age else None,
+                        ai_match_threshold=match_threshold.strip() if match_threshold else None,
                         ask_for_date_of_birth=int(ask_dob),
-                        ask_for_gender=int(ask_gender)
+                        ask_for_gender=int(ask_gender),
+                        hiring_company=hiring_company.strip()
                     )
                     st.success("Vacancy updated successfully!")
                 else:
@@ -156,8 +170,10 @@ def show_vacancy_modal(vacancy_id=None, theme=None):
                         job_description=job_description.strip(),
                         ai_gender_preference=ai_gender,
                         ai_age_preference=ai_age.strip() if ai_age else None,
+                        ai_match_threshold=int(match_threshold.strip()) if match_threshold else 0,
                         ask_for_date_of_birth=int(ask_dob),
-                        ask_for_gender=int(ask_gender)
+                        ask_for_gender=int(ask_gender),
+                        hiring_company=hiring_company.strip()
                     )
                     st.success(f"Vacancy created! Application link: {link}")
 
@@ -180,6 +196,10 @@ def show_vacancy_details(vacancy_id, theme):
 
     st.markdown(f"""
     <div class="card">
+        <div style="margin-bottom: 12px;">
+            <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Hiring Company</div>
+            <div style="font-size: 16px; font-weight: 600; color: {theme['text']};">{vacancy['hiring_company']}</div>
+        </div>
         <div style="margin-bottom: 12px;">
             <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Job Title</div>
             <div style="font-size: 16px; font-weight: 600; color: {theme['text']};">{vacancy['job_title']}</div>
@@ -212,7 +232,7 @@ def show_vacancy_details(vacancy_id, theme):
         st.session_state.viewing_vacancy = None
         st.rerun()
 
-def show_submission_details(submission_id, theme):
+def show_submission_details(submission_id, theme, session_key="show_submission_details", view_key="viewing_submission"):
     """Show submission details modal."""
     submission = get_submission_by_id(submission_id)
     if not submission:
@@ -227,17 +247,17 @@ def show_submission_details(submission_id, theme):
 
     # Determine badge type
     score = submission['match_score'] or 0
+    threshold = submission['ai_match_threshold']
     if score >= 70:
         badge_type = 'success'
-    elif score >= 50:
+    elif score >= threshold:
         badge_type = 'warning'
     else:
         badge_type = 'danger'
 
-    status = "Employable" if score >= 70 else "Fair" if score >= 50 else "Not employable"
-
-    st.markdown(f"""
-    <div class="card">
+    status = "Employable" if score >= 70 else "Fair" if score >= threshold else "Not employable"
+    html = f"""
+        <div class="card"  style="border-radius: 8px; padding: 20px; margin-bottom: 16px;>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <div style="font-size: 18px; font-weight: 600; color: {theme['text']};">
                 {submission['candidate_name']}
@@ -285,8 +305,10 @@ def show_submission_details(submission_id, theme):
             <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Submission Date</div>
             <div style="font-size: 14px; color: {theme['text']};">{submission['submission_date']}</div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        </div>
+    """
+
+    st.markdown(html, unsafe_allow_html=True)
 
     # Resume preview/download
     if submission['resume_file_path'] and os.path.exists(submission['resume_file_path']):
@@ -315,8 +337,8 @@ def show_submission_details(submission_id, theme):
             )
 
     if st.button("Close", use_container_width=True):
-        st.session_state.show_submission_details = False
-        st.session_state.viewing_submission = None
+        st.session_state[session_key]= False
+        st.session_state[view_key] = None
         st.rerun()
 
 def render_vacancies_tab(theme):
@@ -328,10 +350,17 @@ def render_vacancies_tab(theme):
     col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
 
     with col1:
-        search = st.text_input("🔍 Search", placeholder="Search vacancies...", key="vacancy_search")
+        st.markdown("""
+        <style>
+            div[data-baseweb="input"] {
+                width: 30vw !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        search = st.text_input('',placeholder="Search vacancies...", key="vacancy_search")
 
     with col2:
-        if st.button("➕ New Vacancy", use_container_width=True, type="primary"):
+        if st.button("➕ Create Vacancy", use_container_width=True, type="primary"):
             st.session_state.show_vacancy_modal = True
             st.session_state.editing_vacancy = None
             # st.rerun()
@@ -396,7 +425,7 @@ def render_vacancies_tab(theme):
             with cols[1]:
                 st.write(vacancy['ai_gender_preference'])
             with cols[2]:
-                desc = vacancy['job_description'][:50] + "..." if len(vacancy['job_description']) > 50 else vacancy['job_description']
+                desc = vacancy['job_description'][:30] + "..." if len(vacancy['job_description']) > 50 else vacancy['job_description']
                 st.write(desc)
             with cols[3]:
                 st.write(str(vacancy['submitted_count']))
@@ -408,7 +437,6 @@ def render_vacancies_tab(theme):
                 if vacancy['application_link']:
                     if st.button("🔗", key=f"copy_link_{vacancy['id']}", help="Copy application link"):
                         st.code(vacancy['application_link'])
-                        st.success("Link copied to clipboard!")
             with cols[7]:
                 with st.popover("⋮"):
                     if st.button("View details", key=f"view_vac_{vacancy['id']}"):
@@ -450,13 +478,22 @@ def render_submitted_resumes_tab(theme):
     """Render Submitted Resumes tab."""
     st.markdown('<div class="sub-header" style="colour:gray;">Submitted Resumes</div>', unsafe_allow_html=True)
     st.markdown(f'<div style="color: {theme["text_secondary"]}; margin-bottom: 20px;">Review and screen submitted applications</div>', unsafe_allow_html=True)
+    
+    #  Get vacancies
+    all_vacancies = get_all_vacancies()
+    unique_titles = list(set([v['job_title'] for v in all_vacancies]))
+    unique_titles.sort()
+    vacancy_options = ['All'] + unique_titles
 
     # Search and filter row
-    col1, col2 = st.columns([3, 1])
+    col1, col2, col3= st.columns([3, 1, 1])
     with col1:
-        search = st.text_input("🔍 Search", placeholder="Search submissions...", key="submission_search")
+        search = st.text_input("", placeholder="Search submissions...", key="submission_search")
     with col2:
         status_filter = st.selectbox("Status", ["All", "Employable", "Fair", "Not employable"], key="sub_status_filter")
+    with col3:
+        vacancy_filter = st.selectbox("Job Vacancy Title", vacancy_options, key="sub_vacancy_filter")
+
 
     # Get submissions
     submissions = get_all_submissions(status='submitted')
@@ -470,11 +507,15 @@ def render_submitted_resumes_tab(theme):
                        search_lower in (s['vacancy_title'] or '').lower()]
 
     if status_filter != "All":
-        # Current code - status_filter isn't being checked properly
         submissions = [s for s in submissions if 
                     (status_filter == "Employable" and s['match_score'] >= 70) or
-                    (status_filter == "Fair" and 50 <= s['match_score'] < 70) or
-                    (status_filter == "Not employable" and s['match_score'] < 50)]
+                    (status_filter == "Fair" and 40 <= s['match_score'] < 70) or    
+                    (status_filter == "Not employable" and s['match_score'] < 30)]
+        
+    if vacancy_filter != 'All':
+        submissions = [s for s in submissions if
+                        s['vacancy_title'] == vacancy_filter
+                       ]
 
     # Pagination
     if 'submitted_current_page' not in st.session_state:
@@ -506,11 +547,12 @@ def render_submitted_resumes_tab(theme):
 
         for sub in page_submissions:
             score = sub['match_score'] or 0
+            threshold = sub['ai_match_threshold']
 
             if score >= 70:
                 badge_type = 'success'
                 status_text = "Employable"
-            elif score >= 40:
+            elif score >= threshold:
                 badge_type = 'warning'
                 status_text = "Fair"
             else:
@@ -566,11 +608,20 @@ def render_progressed_resumes_tab(theme):
     st.markdown(f'<div style="color: {theme["text_secondary"]}; margin-bottom: 20px;">Candidates in interview phase</div>', unsafe_allow_html=True)
 
     # Search and filter row
-    col1, col2 = st.columns([3, 1])
+    col1, col2, col3 = st.columns([3, 1, 1])
+    
+    #  Get vacancies
+    all_vacancies = get_all_vacancies()
+    unique_titles = list(set([v['job_title'] for v in all_vacancies]))
+    unique_titles.sort()
+    vacancy_options = ['All'] + unique_titles
+    
     with col1:
-        search = st.text_input("🔍 Search", placeholder="Search progressed candidates...", key="progressed_search")
+        search = st.text_input("", placeholder="Search progressed candidates...", key="progressed_search")
     with col2:
         status_filter = st.selectbox("Status", ["All", "Employable", "Fair", "Not employable"], key="prog_status_filter")
+    with col3:
+        vacancy_filter = st.selectbox("Job Vacancy Title", vacancy_options, key="")
 
     # Get progressed submissions
     submissions = get_all_submissions(status='progressed')
@@ -604,7 +655,8 @@ def render_progressed_resumes_tab(theme):
 
     # Submission details modal
     if st.session_state.get('show_progressed_details', False):
-        show_submission_details(st.session_state.get('viewing_progressed'), theme)
+        show_submission_details(st.session_state.get('viewing_progressed'), theme, session_key="show_progressed_details",
+        view_key="viewing_progressed")
         return
 
     # Table
@@ -620,11 +672,12 @@ def render_progressed_resumes_tab(theme):
 
         for sub in page_submissions:
             score = sub['match_score'] or 0
+            threshold = sub['ai_match_threshold']
 
-            if score >= 70:
+            if score >= 60:
                 badge_type = 'success'
                 status_text = "Employable"
-            elif score >= 40:
+            elif score >= threshold:
                 badge_type = 'warning'
                 status_text = "Fair"
             else:
@@ -680,7 +733,6 @@ def render_progressed_resumes_tab(theme):
                         delete_submission(sub['id'])
                         st.success("Submission deleted")
                         st.rerun()
-
             st.markdown("---")
 
     # Pagination
