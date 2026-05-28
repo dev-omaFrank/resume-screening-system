@@ -19,22 +19,22 @@ def generate_explanation(match_score, skills_match, experience_score):
     elif match_score >= 50:
         explanations.append("• Moderate match")
     else:
-        explanations.append("• Weak match\n")
+        explanations.append("• Weak match")
         
     if experience_score >= 80:
-        explanations.append("• Excellent years of experience")
+        explanations.append(f"• Excellent years of experience ({experience_score}%)")
     elif experience_score >= 60:
-        explanations.append("• Good years of experience")
+        explanations.append(f"• Good years of experience ({experience_score}%)")
     elif experience_score >= 40:
-        explanations.append("• Fair years of experience")
+        explanations.append(f"• Fair years of experience ({experience_score}%)")
     else:
-        explanations.append("• Limited years of experience")
+        explanations.append(f"• Limited years of experience ({experience_score}%)")
 
     # if skills_match['matched']:
         # explanations.append(f"Matched skills: {', '.join(skills_match['matched'][:3])}")
 
     if skills_match['missing']:
-        explanations.append(f"Missing skills: {', '.join(skills_match['missing'][:3])}")
+        explanations.append(f"Missing skills: {'<br>•'.join(skills_match['missing'][:3])}")
 
     return "<br>".join(explanations)
 
