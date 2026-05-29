@@ -220,10 +220,7 @@ def main():
                     years = extract_years_of_experience(resume_text)
                     exp_score = score_experience(years)
                     
-                    #individual score for deug
-                    tfidf_score = match_score
-                    skills_match_pct = skills_match['match_percentage']
-                    experience_pct = exp_score
+                    #individual score for deubg
                     
                     #if no skills match, fail immediately
                     if skills_match['match_percentage'] <= 7:

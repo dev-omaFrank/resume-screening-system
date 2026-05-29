@@ -249,7 +249,7 @@ def show_submission_details(submission_id, theme, session_key="show_submission_d
     skill_summary = get_skill_summary(submission)
     
     # Build experience summary text
-    experience_summary = f"{years_exp} of experience • {match_level} match"
+    experience_summary = f"{years_exp} • {match_level} match"
     
     # Get skills to display
     all_skills = skill_summary["matched"] + skill_summary["missing"]
