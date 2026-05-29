@@ -70,11 +70,11 @@ def generate_explanation(match_score, skills_match, experience_score, tfidf_scor
     
     # Match level
     if match_score >= 70:
-        explanations.append("• Strong Match")
+        explanations.append("• Strong Match based on skills")
     elif match_score >= 50:
-        explanations.append("• Moderate Match")
+        explanations.append("• Moderate Match based on skills")
     else:
-        explanations.append("• Weak Match")
+        explanations.append("• Weak Match based on skills")
         
     # Experience level
     if experience_score >= 80:
