@@ -15,6 +15,29 @@ from core.skills import extract_skills_strict, match_skills_strict
 from core.experience import extract_years_of_experience, score_experience
 from core.explanation import generate_explanation, get_status, combine_scores
 
+st.markdown("""
+<style>
+    /* Remove default Streamlit container padding */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    
+    /* Make content full width */
+    .stAppToolbar {
+        max-width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        display: none;
+    }
+    
+</style>
+""", unsafe_allow_html=True)
+
+
 def main():
     """Main application page for candidates."""
     # Apply theme
@@ -236,7 +259,8 @@ def main():
                         )
 
                     # ADD THIS CHECK - Don't save if score is too low
-                    if final_score < 20:
+                    threshold = vacancy['ai_match_threshold']
+                    if final_score < threshold:
                         st.warning("Your resume does not meet the minimum requirements for this position. Thank you for your interest.")
                         st.stop()  
                     

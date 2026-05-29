@@ -9,9 +9,30 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from utils.theme import apply_theme, toggle_theme, LIGHT_THEME, DARK_THEME
 from database.db_manager import get_all_vacancies
 
+st.markdown("""
+<style>
+    /* Remove default Streamlit container padding */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    
+    /* Make content full width */
+    .stAppToolbar {
+        max-width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        display: none;
+    }
+    
+</style>
+""", unsafe_allow_html=True)
+
 def main():
     """Main application entry point."""
-    
     # Apply theme
     theme = apply_theme()
 

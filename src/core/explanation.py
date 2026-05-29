@@ -68,39 +68,31 @@ def generate_explanation(match_score, skills_match, experience_score, tfidf_scor
     """
     explanations = []
     
-    # Add individual scores for debugging
-    if tfidf_score is not None:
-        explanations.append(f"TF-IDF: {tfidf_score:.0f}%")
-        
-    explanations.append(f"Skills: {skills_match['match_percentage']:.0f}%")
-    explanations.append(f"Experience: {experience_score:.0f}%")
-    explanations.append("")  # Empty line separator
-    
     # Match level
     if match_score >= 70:
-        explanations.append("• Strong match")
+        explanations.append("• Strong Match")
     elif match_score >= 50:
-        explanations.append("• Moderate match")
+        explanations.append("• Moderate Match")
     else:
-        explanations.append("• Weak match")
+        explanations.append("• Weak Match")
         
     # Experience level
     if experience_score >= 80:
-        explanations.append(f"• Excellent years of experience ({experience_score}%)")
+        explanations.append(f"• Candidate has very valid experience (Excellent)")
     elif experience_score >= 60:
-        explanations.append(f"• Good years of experience ({experience_score}%)")
+        explanations.append(f"• Candidate possess good experience (Moderate)")
     elif experience_score >= 40:
-        explanations.append(f"• Fair years of experience ({experience_score}%)")
+        explanations.append(f"• Candidate has some experience in this field (Fair)")
     else:
-        explanations.append(f"• Limited years of experience ({experience_score}%)")
+        explanations.append(f"• Candidate has limited experience in this field (Poor)")
 
     # Matched skills
     if skills_match['matched']:
-        explanations.append(f"Matched skills: {'<br>•'.join(skills_match['matched'][:3])}")
+        explanations.append(f"<br>Candidate possesses the following skills: {'<br>•'.join(skills_match['matched'][:3])}")
 
     # Missing skills
     if skills_match['missing']:
-        explanations.append(f"Missing skills: {'<br>•'.join(skills_match['missing'][:3])}")
+        explanations.append(f"<br>Candidate lacks the following skills: {'<br>•'.join(skills_match['missing'][:3])}")
 
     return "<br>".join(explanations)
 

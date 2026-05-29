@@ -135,7 +135,7 @@ def update_vacancy(vacancy_id, **kwargs):
     cursor = conn.cursor()
 
     allowed_fields = ['hiring_company', 'job_title', 'job_description', 'ai_gender_preference', 
-                      'ai_age_preference', 'ask_for_date_of_birth', 'match_threshold', 'ask_for_gender', 'status']
+                      'ai_age_preference', 'ask_for_date_of_birth', 'ai_match_threshold', 'ask_for_gender', 'status']
 
     updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
     updates['updated_at'] = datetime.now().isoformat()

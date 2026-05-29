@@ -18,6 +18,34 @@ from database.db_manager import (
 from utils.text_extractor import extract_text
 from core.helpers import  extract_years_of_experience, extract_match_level, get_skill_summary
 
+
+st.markdown("""
+<style>
+    /* Remove default Streamlit container padding */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    
+    /* Make content full width */
+    .stAppToolbar {
+        max-width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-bottom: 1rem !important;
+        display: none;
+    }
+    
+    /* Remove default margins */
+    # div[data-testid="stVerticalBlock"] {
+    #     gap: 0.5rem !important;
+    # }
+</style>
+""", unsafe_allow_html=True)
+
 # Page config
 st.set_page_config(
     page_title="Admin Dashboard",
@@ -218,6 +246,10 @@ def show_vacancy_details(vacancy_id, theme):
             <div style="font-size: 14px; color: {theme['text']};">{vacancy['ai_age_preference'] or 'None'}</div>
         </div>
         <div style="margin-bottom: 12px;">
+            <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">AI Match Threshold</div>
+            <div style="font-size: 14px; color: {theme['text']};">{vacancy['ai_match_threshold'] or 'None'}%</div>
+        </div>
+        <div style="margin-bottom: 12px;">
             <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Application Link</div>
             <div style="font-size: 14px; color: {theme['primary']};">{vacancy['application_link']}</div>
         </div>
@@ -249,7 +281,7 @@ def show_submission_details(submission_id, theme, session_key="show_submission_d
     skill_summary = get_skill_summary(submission)
     
     # Build experience summary text
-    experience_summary = f"{years_exp} • {match_level} match"
+    experience_summary = f"{years_exp} • {match_level}"
     
     # Get skills to display
     all_skills = skill_summary["matched"] + skill_summary["missing"]
@@ -308,6 +340,7 @@ def show_submission_details(submission_id, theme, session_key="show_submission_d
         f'<div style="background: linear-gradient(135deg, {theme["success"]}10, transparent); border-radius: 14px; padding: 18px; margin-bottom: 16px; border-left: 4px solid {theme["success"]};"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["success"]}; margin-bottom: 10px; font-weight: 600;">Strengths</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.6;">{submission["strengths"] or "None identified"}</div></div>'
         
         f'<div style="background: linear-gradient(135deg, {theme["danger"]}10, transparent); border-radius: 14px; padding: 18px; border-left: 4px solid {theme["danger"]};"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["danger"]}; margin-bottom: 10px; font-weight: 600;">Areas for Improvement</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.6;">{submission["gaps"] or "None identified"}</div></div>'
+        
         f'</div>'
         
         # Right Column
@@ -318,7 +351,8 @@ def show_submission_details(submission_id, theme, session_key="show_submission_d
         f'<div style="background: {theme["background"]}; border-radius: 14px; padding: 18px; margin-bottom: 16px;"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["text_secondary"]}; margin-bottom: 12px; font-weight: 600;">Key Skills ({skill_summary["matched_count"]} matched / {skill_summary["missing_count"]} missing)</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.8;">{skills_display}</div></div>'
         
         # Experience Summary - Now with years + match level
-        f'<div style="background: {theme["background"]}; border-radius: 14px; padding: 18px;"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["text_secondary"]}; margin-bottom: 12px; font-weight: 600;">Experience Summary</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.6;">{experience_summary}</div></div>'
+        f'<div style="background: {theme["background"]}; border-radius: 14px; padding: 18px;"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["text_secondary"]}; margin-bottom: 12px; font-weight: 600;">AI Rating</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.6;">{experience_summary}</div></div>'
+        
         f'</div>'
         
         f'</div>'
@@ -334,20 +368,24 @@ def show_submission_details(submission_id, theme, session_key="show_submission_d
     st.markdown(html, unsafe_allow_html=True)
 
     # Resume preview/download
-    if submission['resume_file_path'] and os.path.exists(submission['resume_file_path']):
+    resume_path = submission.get('resume_file_path')
+
+    if resume_path and os.path.exists(resume_path):
         st.markdown(f'<div style="font-size: 14px; font-weight: 600; color: {theme["text"]}; margin: 16px 0 8px 0;">Resume</div>', unsafe_allow_html=True)
         
         try:
-            resume_text = extract_text(submission['resume_file_path'])
-            with st.expander("View Resume Content"):
+            resume_text = extract_text(resume_path)
+            with st.expander("View Resume Content", icon="👁️"):
                 st.text_area("", value=resume_text[:2000] + ("..." if len(resume_text) > 2000 else ""), height=300, disabled=True)
         except:
             st.info("Unable to preview resume content")
 
-        with open(submission['resume_file_path'], 'rb') as f:
-            st.download_button("Download Resume", f.read(), file_name=os.path.basename(submission['resume_file_path']), use_container_width=True)
-
-    if st.button("Close", use_container_width=True):
+        with open(resume_path, 'rb') as f:
+            st.download_button("Download Resume", f.read(), file_name=os.path.basename(resume_path), use_container_width=True)
+    else:
+        # Show message instead of hiding completely
+        st.info("No resume file attached to this submission.")
+    if st.button("Close", use_container_width=True, key=f"close_btn_{submission_id}"):
         st.session_state[session_key] = False
         st.session_state[view_key] = None
         st.rerun()

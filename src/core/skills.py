@@ -32,10 +32,6 @@ def match_skills(resume_skills, job_skills):
     }
 
 
-# ==============================================
-# NEW STRICT FUNCTIONS (ADD THESE)
-# ==============================================
-
 def extract_skills_strict(text, blocklist=None):
     """Extract skills using word boundary matching - stricter version.
     

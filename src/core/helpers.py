@@ -7,12 +7,10 @@ def extract_years_of_experience(ai_recommendation):
     
     # Pattern to match years of experience (e.g., "5 years", "5+ years", "5-7 years")
     patterns = [
-        r'(\d+[\+]?\s*years?\s+of\s+experience)',
-        r'(\d+[\-]\d+\s+years?\s+of\s+experience)',
-        r'(excellent\s+years?\s+of\s+experience)',
-        r'(good\s+years?\s+of\s+experience)',
-        r'(moderate\s+years?\s+of\s+experience)',
-        r'(limited\s+years?\s+of\s+experience)',
+        r'(\d+[\+]?\s*valid?\s+experience)',
+        r'(\d+[\-]\d+\s+good?\+experience)',
+        r'(\d+[\-]\d+\s+some?\+experience)',
+        r'(\d+[\-]\d+\s+limited?\s+experience)',
     ]
     
     for pattern in patterns:
@@ -20,7 +18,7 @@ def extract_years_of_experience(ai_recommendation):
         if match:
             return match.group(1).title()
     
-    return "Not specified"
+    return ""
 
 
 def extract_match_level(ai_recommendation):
@@ -30,12 +28,9 @@ def extract_match_level(ai_recommendation):
     
     # Pattern to match match level
     patterns = [
-        r'(excellent\s+match)',
-        r'(strong\s+match)',
-        r'(good\s+match)',
-        r'(fair\s+match)',
-        r'(weak\s+match)',
-        r'(poor\s+match)',
+        r'(Strong\s+match)',
+        r'(Moderate\s+match)',
+        r'(Weak\s+match)',
     ]
     
     for pattern in patterns:
@@ -43,7 +38,7 @@ def extract_match_level(ai_recommendation):
         if match:
             return match.group(1).title()
     
-    return "Not specified"
+    return ""
 
 
 def extract_missing_skills(ai_recommendation):
