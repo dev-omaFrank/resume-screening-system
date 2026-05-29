@@ -11,6 +11,7 @@ from database.db_manager import get_all_vacancies
 
 def main():
     """Main application entry point."""
+    
     # Apply theme
     theme = apply_theme()
 

@@ -16,6 +16,7 @@ from database.db_manager import (
     delete_submission, get_vacancy_by_id
 )
 from utils.text_extractor import extract_text
+from core.helpers import  extract_years_of_experience, extract_match_level, get_skill_summary
 
 # Page config
 st.set_page_config(
@@ -152,17 +153,17 @@ def show_vacancy_modal(vacancy_id=None, theme=None):
                 st.error("Job Description is required")
             else:
                 if is_edit:
-                    # update_vacancy(
-                    #     vacancy_id,
-                    #     job_title=job_title.strip(),
-                    #     job_description=job_description.strip(),
-                    #     ai_gender_preference=ai_gender,
-                    #     ai_age_preference=ai_age.strip() if ai_age else None,
-                    #     ai_match_threshold=match_threshold.strip() if match_threshold else None,
-                    #     ask_for_date_of_birth=int(ask_dob),
-                    #     ask_for_gender=int(ask_gender),
-                    #     hiring_company=hiring_company.strip()
-                    # )
+                    update_vacancy(
+                        vacancy_id,
+                        job_title=job_title.strip(),
+                        job_description=job_description.strip(),
+                        ai_gender_preference=ai_gender,
+                        ai_age_preference=ai_age.strip() if ai_age else None,
+                        ai_match_threshold=match_threshold.strip() if match_threshold else None,
+                        ask_for_date_of_birth=int(ask_dob),
+                        ask_for_gender=int(ask_gender),
+                        hiring_company=hiring_company.strip()
+                    )
                     st.success("Vacancy updated successfully!")
                 else:
                     vid, link = create_vacancy(
@@ -238,13 +239,22 @@ def show_submission_details(submission_id, theme, session_key="show_submission_d
     if not submission:
         st.error("Submission not found")
         return
-
-    st.markdown(f"""
-    <div style="font-size: 20px; font-weight: 700; color: {theme['text']}; margin-bottom: 16px;">
-        Candidate Details
-    </div>
-    """, unsafe_allow_html=True)
-
+    # Extract key information
+    score = submission['match_score'] or 0
+    threshold = submission['ai_match_threshold']
+    ai_rec = submission.get('ai_recommendation', '')
+    
+    years_exp = extract_years_of_experience(ai_rec)
+    match_level = extract_match_level(ai_rec)
+    skill_summary = get_skill_summary(submission)
+    
+    # Build experience summary text
+    experience_summary = f"{years_exp} of experience • {match_level} match"
+    
+    # Get skills to display
+    all_skills = skill_summary["matched"] + skill_summary["missing"]
+    skills_display = ", ".join(all_skills) if all_skills else "No skills identified"
+    
     # Determine badge type
     score = submission['match_score'] or 0
     threshold = submission['ai_match_threshold']
@@ -256,90 +266,123 @@ def show_submission_details(submission_id, theme, session_key="show_submission_d
         badge_type = 'danger'
 
     status = "Employable" if score >= 70 else "Fair" if score >= threshold else "Not employable"
-    html = f"""
-        <div class="card"  style="border-radius: 8px; padding: 20px; margin-bottom: 16px;>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <div style="font-size: 18px; font-weight: 600; color: {theme['text']};">
-                {submission['candidate_name']}
-            </div>
-            {render_badge(status, badge_type, theme)}
-        </div>
 
-        <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Email</div>
-            <div style="font-size: 14px; color: {theme['text']};">{submission['email'] or 'N/A'}</div>
-        </div>
-
-        <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Vacancy</div>
-            <div style="font-size: 14px; color: {theme['text']};">{submission['vacancy_title']}</div>
-        </div>
-
-        <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Resume Rating</div>
-            <div style="font-size: 24px; font-weight: 700; color: {theme['primary']};">{score:.0f}%</div>
-        </div>
-
-        <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">AI Recommendation</div>
-            <div style="font-size: 14px; color: {theme['text']}; line-height: 1.6;">
-                {submission['ai_recommendation'] or 'No recommendation available'}
-            </div>
-        </div>
-
-        <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Strengths</div>
-            <div style="font-size: 14px; color: {theme['success']};">
-                {submission['strengths'] or 'None identified'}
-            </div>
-        </div>
-
-        <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Gaps</div>
-            <div style="font-size: 14px; color: {theme['danger']};">
-                {submission['gaps'] or 'None identified'}
-            </div>
-        </div>
-
-        <div>
-            <div style="font-size: 12px; color: {theme['text_secondary']}; margin-bottom: 4px;">Submission Date</div>
-            <div style="font-size: 14px; color: {theme['text']};">{submission['submission_date']}</div>
-        </div>
-        </div>
-    """
-
+    # Build HTML without comments to avoid parsing issues
+    html = (
+        f'<div style="'
+        f'background: {theme["surface"]}; '
+        f'border-radius: 20px; '
+        f'padding: 28px; '
+        f'margin-bottom: 16px; '
+        f'box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); '
+        f'border: 1px solid {theme["border"]}; '
+        f'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; '
+        f'">'
+        
+        # Header
+        f'<div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid {theme["border"]};">'
+        f'<div style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, {theme["primary"]}, {theme["primary"]}cc); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: white;">{submission["candidate_name"][0].upper()}</div>'
+        f'<div style="flex: 1;">'
+        f'<div style="font-size: 22px; font-weight: 700; color: {theme["text"]}; margin-bottom: 4px;">{submission["candidate_name"]}</div>'
+        f'<div style="font-size: 14px; color: {theme["text_secondary"]};">{submission["email"]} • {submission["submission_date"]}</div>'
+        f'</div>'
+        f'{render_badge(status, badge_type, theme)}'
+        f'</div>'
+        
+        # Stats Cards
+        f'<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;">'
+        f'<div style="background: {theme["background"]}; border-radius: 12px; padding: 16px; text-align: center;"><div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["text_secondary"]}; margin-bottom: 4px;">Match Score</div><div style="font-size: 24px; font-weight: 800; color: {theme["primary"]};">{score:.0f}%</div></div>'
+        f'<div style="background: {theme["background"]}; border-radius: 12px; padding: 16px; text-align: center;"><div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["text_secondary"]}; margin-bottom: 4px;">Min. Threshold</div><div style="font-size: 24px; font-weight: 700; color: {theme["text"]};">{threshold:.0f}%</div></div>'
+        f'<div style="background: linear-gradient(135deg, {theme["primary"]}15, transparent); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid {theme["primary"]}30;"><div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["primary"]}; margin-bottom: 4px;">Status</div><div style="font-size: 16px; font-weight: 700; color: {theme["primary"]};">{status}</div></div>'
+        f'<div style="background: {theme["background"]}; border-radius: 12px; padding: 16px; text-align: center;"><div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["text_secondary"]}; margin-bottom: 4px;">Vacancy</div><div style="font-size: 14px; font-weight: 600; color: {theme["text"]};">{submission["vacancy_title"]}</div></div>'
+        f'</div>'
+        
+        # Two Column Layout
+        f'<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">'
+        
+        # Left Column
+        f'<div>'
+        
+        f'<div style="background: {theme["background"]}; border-radius: 14px; padding: 18px; margin-bottom: 16px;"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["primary"]}; margin-bottom: 10px; font-weight: 600;">AI Recommendation</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.6;">{submission["ai_recommendation"] or "No recommendation available"}</div></div>'
+        
+        f'<div style="background: linear-gradient(135deg, {theme["success"]}10, transparent); border-radius: 14px; padding: 18px; margin-bottom: 16px; border-left: 4px solid {theme["success"]};"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["success"]}; margin-bottom: 10px; font-weight: 600;">Strengths</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.6;">{submission["strengths"] or "None identified"}</div></div>'
+        
+        f'<div style="background: linear-gradient(135deg, {theme["danger"]}10, transparent); border-radius: 14px; padding: 18px; border-left: 4px solid {theme["danger"]};"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["danger"]}; margin-bottom: 10px; font-weight: 600;">Areas for Improvement</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.6;">{submission["gaps"] or "None identified"}</div></div>'
+        f'</div>'
+        
+        # Right Column
+        f'<div>'
+        f'<div style="background: {theme["background"]}; border-radius: 14px; padding: 18px; margin-bottom: 16px;"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["text_secondary"]}; margin-bottom: 12px; font-weight: 600;">Contact Information</div><div style="font-size: 14px; color: {theme["text"]};">{submission["email"]}</div></div>'
+        
+        # Key Skills - Now with actual matched + missing skills
+        f'<div style="background: {theme["background"]}; border-radius: 14px; padding: 18px; margin-bottom: 16px;"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["text_secondary"]}; margin-bottom: 12px; font-weight: 600;">Key Skills ({skill_summary["matched_count"]} matched / {skill_summary["missing_count"]} missing)</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.8;">{skills_display}</div></div>'
+        
+        # Experience Summary - Now with years + match level
+        f'<div style="background: {theme["background"]}; border-radius: 14px; padding: 18px;"><div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {theme["text_secondary"]}; margin-bottom: 12px; font-weight: 600;">Experience Summary</div><div style="font-size: 14px; color: {theme["text"]}; line-height: 1.6;">{experience_summary}</div></div>'
+        f'</div>'
+        
+        f'</div>'
+        
+        # Footer
+        f'<div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid {theme["border"]}; font-size: 12px; color: {theme["text_secondary"]};">'
+        f'<div>Submitted on {submission["submission_date"]}</div>'
+        f'<div>ID: {submission["id"]}</div>'
+        f'</div>'
+        f'</div>'
+    )
+    
     st.markdown(html, unsafe_allow_html=True)
 
     # Resume preview/download
     if submission['resume_file_path'] and os.path.exists(submission['resume_file_path']):
-        st.markdown(f"""
-        <div style="margin-top: 16px;">
-            <div style="font-size: 14px; font-weight: 600; color: {theme['text']}; margin-bottom: 8px;">
-                Resume Preview
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
+        st.markdown(f'<div style="font-size: 14px; font-weight: 600; color: {theme["text"]}; margin: 16px 0 8px 0;">Resume</div>', unsafe_allow_html=True)
+        
         try:
             resume_text = extract_text(submission['resume_file_path'])
             with st.expander("View Resume Content"):
-                st.text_area("", value=resume_text[:2000] + ("..." if len(resume_text) > 2000 else ""), 
-                            height=300, disabled=True)
+                st.text_area("", value=resume_text[:2000] + ("..." if len(resume_text) > 2000 else ""), height=300, disabled=True)
         except:
             st.info("Unable to preview resume content")
 
         with open(submission['resume_file_path'], 'rb') as f:
-            st.download_button(
-                "Download Resume",
-                f.read(),
-                file_name=os.path.basename(submission['resume_file_path']),
-                use_container_width=True
-            )
+            st.download_button("Download Resume", f.read(), file_name=os.path.basename(submission['resume_file_path']), use_container_width=True)
 
     if st.button("Close", use_container_width=True):
-        st.session_state[session_key]= False
+        st.session_state[session_key] = False
         st.session_state[view_key] = None
         st.rerun()
+
+def generate_skill_tags(skills_text, theme):
+    """Generate skill tag HTML."""
+    if not skills_text:
+        return '<span style="color: ' + theme['text_secondary'] + ';">No skills listed</span>'
+    
+    # Parse skills - assume comma or newline separated
+    skills = [s.strip() for s in skills_text.replace('\n', ',').split(',') if s.strip()]
+    
+    if not skills:
+        return '<span style="color: ' + theme['text_secondary'] + ';">No skills listed</span>'
+    
+    # Generate colorful tags
+    colors = [theme['primary'], theme['success'], '#8b5cf6', '#f59e0b', '#ec4899']
+    tags_html = ""
+    
+    for i, skill in enumerate(skills[:8]):  # Limit to 8 skills
+        color = colors[i % len(colors)]
+        tags_html += f'''
+        <span style="
+            background: {color}15;
+            color: {color};
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        ">
+            {skill}
+        </span>
+        '''
+    
+    return tags_html
 
 def render_vacancies_tab(theme):
     """Render Job Vacancies tab."""
@@ -347,7 +390,7 @@ def render_vacancies_tab(theme):
     st.markdown(f'<div style="color: {theme["text_secondary"]}; margin-bottom: 20px;">Create and manage jobs vacancies</div>', unsafe_allow_html=True)
 
     # Search and Create button row
-    col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
+    col1, col2 = st.columns([4, 7], vertical_alignment="bottom")
 
     with col1:
         st.markdown("""
@@ -360,7 +403,7 @@ def render_vacancies_tab(theme):
         search = st.text_input('',placeholder="Search vacancies...", key="vacancy_search")
 
     with col2:
-        if st.button("➕ Create Vacancy", use_container_width=True, type="primary"):
+        if st.button("➕ Create Vacancy", use_container_width=False, type="primary"):
             st.session_state.show_vacancy_modal = True
             st.session_state.editing_vacancy = None
             # st.rerun()
@@ -402,7 +445,7 @@ def render_vacancies_tab(theme):
         st.info("No vacancies found")
     else:
         # Header
-        header_cols = st.columns([2, 1, 3, 1, 1, 1, 2, 1])
+        header_cols = st.columns([1, 1, 2, 1, 1, 1, 2, 1])
         headers = ["Job Title", "Gender", "Job Description", "Submitted", "Progressed", "Status", "Application Link", "Actions"]
         for col, header in zip(header_cols, headers):
             col.markdown(f"**{header}**")
@@ -418,8 +461,7 @@ def render_vacancies_tab(theme):
             else:
                 badge_type = 'danger'
 
-            cols = st.columns([2, 1, 3, 1, 1, 1, 2, 1])
-
+            cols =  st.columns([1, 1, 2, 1, 1, 1, 2, 1])
             with cols[0]:
                 st.write(vacancy['job_title'])
             with cols[1]:

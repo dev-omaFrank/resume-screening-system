@@ -11,7 +11,7 @@ from utils.theme import apply_theme, LIGHT_THEME, DARK_THEME
 from database.db_manager import get_vacancy_by_id, create_submission
 from utils.text_extractor import extract_text
 from core.similarity import calculate_similarity, preprocess_for_tfidf
-from core.skills import extract_skills, match_skills
+from core.skills import extract_skills_strict, match_skills_strict
 from core.experience import extract_years_of_experience, score_experience
 from core.explanation import generate_explanation, get_status, combine_scores
 
@@ -206,24 +206,37 @@ def main():
                     resume_text = preprocess_for_tfidf(resume_text)
                     job_description = preprocess_for_tfidf(vacancy['job_description'])
 
+                 # The code snippet you provided is a part of the process that occurs when a candidate
+                 # submits their application through the AI-Based Resume Screening System. Here's a
+                 # breakdown of what that section of the code is doing:
                     ### Calculate similarity
                     match_score = calculate_similarity(resume_text, job_description)
 
                     # Extract skills
-                    resume_skills = extract_skills(resume_text)
-                    job_skills = extract_skills(job_description)
-                    skills_match = match_skills(resume_skills, job_skills)
+                    job_skills = extract_skills_strict(vacancy['job_description'])
+                    skills_match = match_skills_strict(resume_text, job_skills)
 
                     # Experience
                     years = extract_years_of_experience(resume_text)
                     exp_score = score_experience(years)
                     
-                    # Combine all scores
-                    final_score = combine_scores(
-                        match_score,
-                        skills_match['match_percentage'],
-                        exp_score
-                    )
+                    #individual score for deug
+                    tfidf_score = match_score
+                    skills_match_pct = skills_match['match_percentage']
+                    experience_pct = exp_score
+                    
+                    #if no skills match, fail immediately
+                    if skills_match['match_percentage'] <= 7:
+                        final_score = 0
+                        status = "Not employable"
+                        ai_recommendation = "⚠️ No compatible skills found for this vacancy"
+                    else:
+                        # Combine all scores
+                        final_score = combine_scores(
+                            match_score,
+                            skills_match['match_percentage'],
+                            exp_score
+                        )
 
                     # ADD THIS CHECK - Don't save if score is too low
                     if final_score < 20:
@@ -231,7 +244,13 @@ def main():
                         st.stop()  
                     
                     # Generate recommendation
-                    ai_recommendation = generate_explanation(final_score, skills_match, exp_score)
+                    ai_recommendation = generate_explanation(
+                        final_score, 
+                        skills_match, 
+                        exp_score,
+                        tfidf_score=match_score  # Pass TF-IDF score
+                    )
+                    
                     status = get_status(final_score)
 
                     # Save to database
